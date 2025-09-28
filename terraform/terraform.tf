@@ -1,0 +1,1 @@
+# This file is intentionally empty - all provider configurations are in main.tf

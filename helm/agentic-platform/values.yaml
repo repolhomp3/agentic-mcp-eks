@@ -1,0 +1,44 @@
+registry: "your-registry"  # Update with your registry
+
+services:
+  agentCore:
+    image: agent-core:latest
+    port: 8000
+    replicas: 2
+  
+  awsMcp:
+    image: aws-mcp:latest
+    port: 8000
+    replicas: 1
+  
+  databaseMcp:
+    image: database-mcp:latest
+    port: 8000
+    replicas: 1
+  
+  customMcp:
+    image: custom-mcp:latest
+    port: 8000
+    replicas: 1
+  
+  frontend:
+    image: agentic-frontend:latest
+    port: 80
+    replicas: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    namespace: monitoring
+  metrics:
+    port: 9090
+    path: /metrics

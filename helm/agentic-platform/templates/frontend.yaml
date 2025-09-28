@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentic-frontend
+spec:
+  replicas: {{ .Values.services.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: agentic-frontend
+  template:
+    metadata:
+      labels:
+        app: agentic-frontend
+    spec:
+      serviceAccountName: agentic-service-account
+      containers:
+      - name: frontend
+        image: {{ .Values.registry }}/{{ .Values.services.frontend.image }}
+        ports:
+        - containerPort: {{ .Values.services.frontend.port }}
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentic-frontend-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-name: "agentic-dashboard-alb"
+spec:
+  selector:
+    app: agentic-frontend
+  ports:
+  - port: 80
+    targetPort: {{ .Values.services.frontend.port }}
+  type: ClusterIP

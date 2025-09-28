@@ -1,0 +1,22 @@
+{{- if and .Values.monitoring .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: agentic-platform
+  namespace: {{ .Values.monitoring.serviceMonitor.namespace | default "monitoring" }}
+  labels:
+    app: agentic-platform
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: agentic-platform
+  namespaceSelector:
+    matchNames:
+    - default
+  endpoints:
+  - port: http
+    path: {{ .Values.monitoring.metrics.path | default "/metrics" }}
+    interval: 30s
+    scrapeTimeout: 10s
+{{- end }}
