@@ -77,11 +77,50 @@ The Agentic Workflows Platform transforms traditional tool orchestration into **
 ## 📋 Prerequisites
 
 ### **Required Tools**
-```bash
-# Install required CLI tools
-brew install terraform kubectl helm awscli docker
 
-# Verify versions
+**macOS (Homebrew)**:
+```bash
+brew install terraform kubectl helm awscli docker
+```
+
+**Linux (Ubuntu/Debian)**:
+```bash
+# Terraform
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
+
+# kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# Helm
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update && sudo apt-get install helm
+
+# AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip && sudo ./aws/install
+
+# Docker
+sudo apt-get update && sudo apt-get install docker.io
+sudo usermod -aG docker $USER
+```
+
+**Windows (PowerShell as Administrator)**:
+```powershell
+# Install Chocolatey first
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Install tools
+choco install terraform kubectl kubernetes-helm awscli docker-desktop
+
+# Start Docker Desktop manually after installation
+```
+
+**Verify Installation (All Platforms)**:
+```bash
 terraform --version  # >= 1.0
 kubectl version --client  # >= 1.28
 helm version  # >= 3.12
@@ -90,6 +129,8 @@ docker --version  # >= 20.0
 ```
 
 ### **AWS Setup**
+
+**All Platforms**:
 ```bash
 # Configure AWS credentials
 aws configure
@@ -97,16 +138,31 @@ aws configure
 
 # Verify access
 aws sts get-caller-identity
-
-# Request Bedrock model access (required for AI workflows)
-# AWS Console → Bedrock → Model access → Request access to:
-# - Amazon Titan Text G1 - Lite (required)
-# - Amazon Nova Micro (optional)
 ```
+
+**Windows Alternative (PowerShell)**:
+```powershell
+# Set environment variables instead of aws configure
+$env:AWS_ACCESS_KEY_ID="your-access-key"
+$env:AWS_SECRET_ACCESS_KEY="your-secret-key"
+$env:AWS_DEFAULT_REGION="us-west-2"
+
+# Verify access
+aws sts get-caller-identity
+```
+
+**Request Bedrock Model Access (AWS Console)**:
+1. Navigate to AWS Console → Bedrock → Model access
+2. Request access to:
+   - Amazon Titan Text G1 - Lite (required)
+   - Amazon Nova Micro (optional)
+3. Wait for approval (usually immediate)
 
 ### **Container Registry Setup**
 
 **Option 1: Amazon ECR (Recommended)**
+
+*Linux/macOS*:
 ```bash
 # Login to ECR
 aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-west-2.amazonaws.com
@@ -117,7 +173,20 @@ for repo in agent-core aws-mcp database-mcp custom-mcp agentic-frontend; do
 done
 ```
 
-**Option 2: Docker Hub**
+*Windows (PowerShell)*:
+```powershell
+# Login to ECR
+$password = aws ecr get-login-password --region us-west-2
+echo $password | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-west-2.amazonaws.com
+
+# Create repositories
+$repos = @("agent-core", "aws-mcp", "database-mcp", "custom-mcp", "agentic-frontend")
+foreach ($repo in $repos) {
+    aws ecr create-repository --repository-name $repo --region us-west-2
+}
+```
+
+**Option 2: Docker Hub (All Platforms)**
 ```bash
 # Login to Docker Hub
 docker login
@@ -126,34 +195,74 @@ docker login
 ## 🛠️ Installation & Deployment
 
 ### **Step 1: Clone and Configure**
-```bash
-git clone <your-repo-url>
-cd agentic
 
+**All Platforms**:
+```bash
+git clone https://github.com/repolhomp3/agentic-mcp-eks.git
+cd agentic-mcp-eks
+```
+
+**Update Registry Configuration**:
+
+*Linux/macOS*:
+```bash
 # Update registry in build.sh and helm/agentic-platform/values.yaml
-# Replace "your-registry" with:
+sed -i 's/your-registry/<your-registry>/g' build.sh
+sed -i 's/your-registry/<your-registry>/g' helm/agentic-platform/values.yaml
+
+# Replace <your-registry> with:
+# - ECR: <account-id>.dkr.ecr.us-west-2.amazonaws.com
+# - Docker Hub: <your-dockerhub-username>
+```
+
+*Windows (PowerShell)*:
+```powershell
+# Update registry in build.sh and helm/agentic-platform/values.yaml
+(Get-Content build.sh) -replace 'your-registry', '<your-registry>' | Set-Content build.sh
+(Get-Content helm/agentic-platform/values.yaml) -replace 'your-registry', '<your-registry>' | Set-Content helm/agentic-platform/values.yaml
+
+# Replace <your-registry> with:
 # - ECR: <account-id>.dkr.ecr.us-west-2.amazonaws.com
 # - Docker Hub: <your-dockerhub-username>
 ```
 
 ### **Step 2: One-Command Deployment**
+
+**Linux/macOS**:
 ```bash
+# Make scripts executable
+chmod +x deploy.sh build.sh
+
 # Deploy everything (infrastructure + applications)
 ./deploy.sh
-
-# Deployment includes:
-# ✅ VPC with 3 AZs (public/private subnets)
-# ✅ EKS cluster with managed node groups
-# ✅ Karpenter for intelligent autoscaling
-# ✅ AWS Load Balancer Controller
-# ✅ Pod Identity for secure AWS access
-# ✅ Metrics Server for resource monitoring
-# ✅ Prometheus & Grafana monitoring stack
-# ✅ All containerized services
-# ✅ ALB Ingress for external access
 ```
 
+**Windows (PowerShell)**:
+```powershell
+# Run deployment script
+bash deploy.sh
+# Or run commands manually if bash is not available:
+# 1. bash build.sh
+# 2. cd terraform && terraform init && terraform apply -auto-approve
+# 3. aws eks update-kubeconfig --region us-west-2 --name agentic-cluster
+# 4. kubectl wait --for=condition=Ready nodes --all --timeout=300s
+# 5. cd ../helm && helm install agentic-platform ./agentic-platform
+```
+
+**Deployment Includes**:
+- ✅ VPC with 3 AZs (public/private subnets)
+- ✅ EKS cluster with managed node groups
+- ✅ Karpenter for intelligent autoscaling
+- ✅ AWS Load Balancer Controller
+- ✅ Pod Identity for secure AWS access
+- ✅ Metrics Server for resource monitoring
+- ✅ Prometheus & Grafana monitoring stack
+- ✅ All containerized services
+- ✅ ALB Ingress for external access
+
 ### **Step 3: Access Dashboards**
+
+**Linux/macOS**:
 ```bash
 # Get main dashboard URL (takes 2-3 minutes for ALB provisioning)
 kubectl get ingress agentic-ingress
@@ -163,6 +272,20 @@ echo "Main Dashboard: http://$(kubectl get ingress agentic-ingress -o jsonpath='
 kubectl get svc -n monitoring prometheus-grafana
 echo "Grafana Dashboard: http://$(kubectl get svc -n monitoring prometheus-grafana -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
 echo "Grafana Login: admin / admin123"
+```
+
+**Windows (PowerShell)**:
+```powershell
+# Get main dashboard URL (takes 2-3 minutes for ALB provisioning)
+kubectl get ingress agentic-ingress
+$mainUrl = kubectl get ingress agentic-ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+Write-Host "Main Dashboard: http://$mainUrl"
+
+# Get Grafana monitoring dashboard URL
+kubectl get svc -n monitoring prometheus-grafana
+$grafanaUrl = kubectl get svc -n monitoring prometheus-grafana -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+Write-Host "Grafana Dashboard: http://$grafanaUrl"
+Write-Host "Grafana Login: admin / admin123"
 ```
 
 ## 🎮 Usage Examples
@@ -431,6 +554,8 @@ kubectl describe pod <aws-mcp-pod> | grep "AWS_ROLE_ARN"
 ```
 
 ### **Debug Commands**
+
+**All Platforms**:
 ```bash
 # Check Karpenter
 kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter
@@ -442,16 +567,44 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controll
 kubectl exec -it <agent-core-pod> -- curl http://aws-mcp-service/health
 ```
 
+**Windows-Specific Issues**:
+```powershell
+# If kubectl commands fail, ensure Docker Desktop is running
+# and Kubernetes is enabled in Docker Desktop settings
+
+# Check Docker Desktop status
+docker info
+
+# Restart Docker Desktop if needed
+Restart-Service docker
+```
+
 ## 🧹 Cleanup
 
 ### **Complete Cleanup**
+
+**Linux/macOS**:
 ```bash
 # Delete applications
 helm uninstall agentic-platform
 
 # Delete infrastructure
 cd terraform
-terraform destroy
+terraform destroy -auto-approve
+
+# Verify cleanup
+aws eks list-clusters --region us-west-2
+aws ec2 describe-vpcs --filters "Name=tag:Name,Values=agentic-cluster-vpc"
+```
+
+**Windows (PowerShell)**:
+```powershell
+# Delete applications
+helm uninstall agentic-platform
+
+# Delete infrastructure
+Set-Location terraform
+terraform destroy -auto-approve
 
 # Verify cleanup
 aws eks list-clusters --region us-west-2
@@ -459,6 +612,8 @@ aws ec2 describe-vpcs --filters "Name=tag:Name,Values=agentic-cluster-vpc"
 ```
 
 ### **Partial Cleanup (Keep Infrastructure)**
+
+**All Platforms**:
 ```bash
 # Only remove applications
 helm uninstall agentic-platform
