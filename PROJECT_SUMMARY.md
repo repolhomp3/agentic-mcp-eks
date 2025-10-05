@@ -13,10 +13,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Lines of Code** | ~2,500 |
-| **Container Images** | 5 |
-| **Kubernetes Resources** | 15+ |
-| **Terraform Modules** | 8 |
+| **Lines of Code** | ~3,000 |
+| **Container Images** | 6 |
+| **Kubernetes Resources** | 20+ |
+| **Terraform Modules** | 9 |
 | **Demo Cost** | $0.64/2hrs |
 | **Deployment Time** | ~15 minutes |
 
@@ -31,7 +31,8 @@
 ### **MCP Server Ecosystem**
 1. **AWS MCP**: S3, Bedrock, Glue job management
 2. **Database MCP**: SQLite operations with sample data
-3. **Custom MCP**: Weather API and key-value storage
+3. **Kubernetes MCP**: Intelligent cluster administration and pod management
+4. **Custom MCP**: Weather API and key-value storage
 
 ### **Infrastructure Layer**
 - **Amazon EKS 1.33** with multi-AZ deployment
@@ -107,6 +108,7 @@ agentic/
 │   ├── agent-core/         # AI orchestration engine
 │   ├── aws-mcp/           # AWS service integration
 │   ├── database-mcp/      # SQLite operations
+│   ├── k8s-mcp/           # Kubernetes cluster management
 │   ├── custom-mcp/        # External API integration
 │   └── frontend/          # Web dashboard
 ├── terraform/             # Infrastructure as Code
@@ -134,7 +136,10 @@ ETL pipeline: Start job → Monitor execution → Performance analysis
 ### **3. Database Operations**
 SQL execution: Query data → AI insights → Structured results
 
-### **4. System Health Monitoring**
+### **4. Intelligent Kubernetes Management**
+Cluster operations: Health analysis → Pod scaling → AI troubleshooting
+
+### **5. System Health Monitoring**
 Real-time: Service status → Health checks → Auto-recovery
 
 ## 🔧 Extensibility

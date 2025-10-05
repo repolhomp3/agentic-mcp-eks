@@ -37,6 +37,7 @@ The Agentic Workflows Platform transforms traditional tool orchestration into **
 │  🔧 MCP Server Ecosystem                                       │
 │  ├── AWS MCP (S3, Bedrock, Glue Jobs)                         │
 │  ├── Database MCP (SQLite Operations)                          │
+│  ├── Kubernetes MCP (Cluster Admin, Pod Management)            │
 │  └── Custom MCP (Weather API, Key-Value Storage)               │
 ├─────────────────────────────────────────────────────────────────┤
 │  ⚙️ Infrastructure Layer                                        │
@@ -58,6 +59,7 @@ The Agentic Workflows Platform transforms traditional tool orchestration into **
 
 ### **Comprehensive MCP Integration**
 - **AWS Services**: S3 bucket management, Bedrock AI inference, Glue ETL job orchestration
+- **Kubernetes Operations**: Intelligent cluster management, pod scaling, troubleshooting
 - **Database Operations**: SQL query execution with SQLite backend
 - **External APIs**: Weather data integration with intelligent caching
 - **Data Storage**: Persistent key-value storage for workflow results
@@ -168,7 +170,7 @@ aws sts get-caller-identity
 aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-west-2.amazonaws.com
 
 # Create repositories
-for repo in agent-core aws-mcp database-mcp custom-mcp agentic-frontend; do
+for repo in agent-core aws-mcp database-mcp custom-mcp k8s-mcp agentic-frontend; do
   aws ecr create-repository --repository-name $repo --region us-west-2
 done
 ```
@@ -180,7 +182,7 @@ $password = aws ecr get-login-password --region us-west-2
 echo $password | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-west-2.amazonaws.com
 
 # Create repositories
-$repos = @("agent-core", "aws-mcp", "database-mcp", "custom-mcp", "agentic-frontend")
+$repos = @("agent-core", "aws-mcp", "database-mcp", "custom-mcp", "k8s-mcp", "agentic-frontend")
 foreach ($repo in $repos) {
     aws ecr create-repository --repository-name $repo --region us-west-2
 }
@@ -325,6 +327,17 @@ Write-Host "Grafana Login: admin / admin123"
 }
 ```
 **Result**: Executes SQL query and provides AI-generated insights about the data.
+
+### **Intelligent Kubernetes Management**
+```json
+{
+  "method": "workflow/execute",
+  "params": {
+    "task": "kubernetes status"
+  }
+}
+```
+**Result**: Analyzes cluster health, provides AI-powered recommendations for optimization.
 
 ## 💰 Cost Analysis
 

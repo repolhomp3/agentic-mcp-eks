@@ -12,7 +12,8 @@ class AgentCore:
         self.mcp_endpoints = {
             'aws': 'http://aws-mcp-service:80',
             'database': 'http://database-mcp-service:80',
-            'custom': 'http://custom-mcp-service:80'
+            'custom': 'http://custom-mcp-service:80',
+            'k8s': 'http://k8s-mcp-service.k8s-admin:80'
         }
     
     def call_mcp_tool(self, server: str, tool: str, args: Dict) -> Dict:
@@ -82,6 +83,46 @@ class AgentCore:
             query = workflow.get('query', 'SELECT * FROM users')
             result = self.call_mcp_tool('database', 'execute_query', {'query': query})
             return {'workflow': 'database_query', 'result': result}
+        
+        if 'kubernetes' in task.lower() or 'k8s' in task.lower():
+            if 'scale' in task.lower():
+                deployment = workflow.get('deployment_name', 'agent-core')
+                replicas = workflow.get('replicas', 3)
+                result = self.call_mcp_tool('k8s', 'scale_deployment', {
+                    'deployment_name': deployment,
+                    'replicas': replicas
+                })
+                return {'workflow': 'k8s_scale', 'result': result}
+            elif 'status' in task.lower() or 'health' in task.lower():
+                result = self.call_mcp_tool('k8s', 'get_cluster_status', {})
+                analysis = self.invoke_bedrock(f"Analyze this Kubernetes cluster status: {result}")
+                return {
+                    'workflow': 'k8s_health_check',
+                    'steps': [
+                        {'step': 'get_status', 'result': result},
+                        {'step': 'ai_analysis', 'result': analysis}
+                    ]
+                }
+            elif 'pods' in task.lower():
+                namespace = workflow.get('namespace', 'default')
+                result = self.call_mcp_tool('k8s', 'list_pods', {'namespace': namespace})
+                return {'workflow': 'k8s_list_pods', 'result': result}
+            elif 'troubleshoot' in task.lower():
+                pod_name = workflow.get('pod_name')
+                if pod_name:
+                    result = self.call_mcp_tool('k8s', 'troubleshoot_pod', {'pod_name': pod_name})
+                    analysis = self.invoke_bedrock(f"Provide troubleshooting recommendations: {result}")
+                    return {
+                        'workflow': 'k8s_troubleshoot',
+                        'steps': [
+                            {'step': 'analyze_pod', 'result': result},
+                            {'step': 'ai_recommendations', 'result': analysis}
+                        ]
+                    }
+                return {'error': 'pod_name required for troubleshooting'}
+            else:
+                result = self.call_mcp_tool('k8s', 'get_cluster_status', {})
+                return {'workflow': 'k8s_general', 'result': result}
         
         if 'glue' in task.lower():
             if 'start' in task.lower():

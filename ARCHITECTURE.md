@@ -44,13 +44,14 @@ The Agentic Workflows Platform is a cloud-native, AI-powered orchestration syste
   - `custom-mcp-service`: Port 80 → 8000
 
 ### Layer 4: Container Orchestration (Kubernetes)
-- **Namespace**: `default` (can be customized)
-- **Deployments**:
+- **Default Namespace**: Application services
   - `agentic-frontend`: 1 replica (Nginx + static files)
   - `agent-core`: 2 replicas (Python HTTP server)
   - `aws-mcp`: 1 replica (Python HTTP server)
   - `database-mcp`: 1 replica (Python + SQLite)
   - `custom-mcp`: 1 replica (Python HTTP server)
+- **K8s-Admin Namespace**: Cluster management
+  - `k8s-mcp`: 1 replica (Python + Kubernetes client)
 
 ### Layer 5: Infrastructure Layer (Amazon EKS)
 - **EKS Control Plane**: Managed Kubernetes API server
@@ -155,6 +156,12 @@ Each MCP server follows standardized protocol:
 - **External APIs**: wttr.in weather service
 - **Storage**: In-memory key-value store
 
+**Kubernetes MCP Server**:
+- **Tools**: `list_pods`, `scale_deployment`, `get_cluster_status`, `troubleshoot_pod`
+- **Kubernetes APIs**: Core V1, Apps V1, Autoscaling V1
+- **Authentication**: In-cluster config with RBAC
+- **Namespace**: Deployed in `k8s-admin` with ClusterRole permissions
+
 ### Frontend Dashboard
 ```html
 # Frontend Architecture
@@ -197,11 +204,17 @@ Each MCP server follows standardized protocol:
 # Internal Kubernetes Service Mesh
 Agent Core:
   - Outbound: aws-mcp-service:80, database-mcp-service:80, custom-mcp-service:80
+  - Outbound: k8s-mcp-service.k8s-admin:80
   - Outbound: bedrock-runtime.us-west-2.amazonaws.com:443
 
 MCP Servers:
   - Inbound: Agent Core only
   - Outbound: External APIs (weather, AWS services)
+  
+Kubernetes MCP:
+  - Inbound: Agent Core (cross-namespace)
+  - Outbound: Kubernetes API server
+  - RBAC: ClusterRole with pod/deployment management
 
 Frontend:
   - Inbound: ALB Ingress only

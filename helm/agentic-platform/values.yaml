@@ -21,6 +21,11 @@ services:
     port: 8000
     replicas: 1
   
+  k8sMcp:
+    image: k8s-mcp:latest
+    port: 8000
+    replicas: 1
+  
   frontend:
     image: agentic-frontend:latest
     port: 80
